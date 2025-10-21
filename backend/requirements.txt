@@ -1,0 +1,14 @@
+# Core Flask dependencies
+Flask==2.3.3
+Flask-JWT-Extended==4.5.3
+Flask-CORS==4.0.0
+Flask-PyMongo==2.3.0
+
+# Database
+pymongo==4.6.0
+
+# Authentication
+bcrypt==4.0.1
+
+# Utilities
+python-dotenv==1.0.0

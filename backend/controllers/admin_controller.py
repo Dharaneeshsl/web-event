@@ -388,3 +388,4 @@ class AdminController:
         except Exception as e:
             logger.error("Failed to get team details", team_id=team_id, error=str(e))
             return create_error_response(ERROR_MESSAGES['INTERNAL_ERROR'], 500), 500
+

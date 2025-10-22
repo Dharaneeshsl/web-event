@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 from .base import BaseModel
 
@@ -60,3 +60,57 @@ class Team(BaseModel):
                     yellows += 1
         
         return yellows
+
+    def get_active_teams(self):
+        """Get teams active in last 24 hours"""
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        return self.find_many({'last_activity': {'$gte': cutoff}})
+
+    def clean_team_data(self, team):
+        """Remove sensitive data from team"""
+        if not team:
+            return None
+        cleaned = self.serialize_document(team)
+        cleaned.pop('password_hash', None)
+        return cleaned
+
+    def create_team(self, name, password, code=None):
+        """Create team with validation"""
+        from ..services.auth_service import AuthService
+
+        if self.get_by_code(name):
+            return False, None, {'name': 'Name already exists'}
+
+        if not code:
+            code = AuthService.generate_team_code()
+            while self.get_by_code(code):
+                code = AuthService.generate_team_code()
+
+        team_data = {
+            'name': name,
+            'code': code,
+            'password_hash': AuthService.hash_password(password),
+            'word_guesses': [],
+            'has_nonce': False,
+            'last_activity': datetime.utcnow()
+        }
+
+        try:
+            team_id = self.create(team_data)
+            return True, team_id, None
+        except Exception as e:
+            return False, None, {'error': str(e)}
+
+    def get_team_stats(self, team_id):
+        """Get team statistics"""
+        team = self.get_by_id(team_id)
+        if not team:
+            return None
+
+        return {
+            'total_word_guesses': len(team.get('word_guesses', [])),
+            'correct_guesses': len([g for g in team.get('word_guesses', []) if g.get('correct')]),
+            'has_nonce': team.get('has_nonce', False),
+            'created_at': team.get('created_at'),
+            'last_activity': team.get('last_activity')
+        }

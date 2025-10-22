@@ -5,6 +5,7 @@ from ..services.game_service import GameService
 from ..models.team import Team
 from ..models.page import Page
 from ..models.game_state import GameState
+from ..utils.constants import GAME_STATUS_COMPLETED
 
 class GameController:
     def __init__(self, db_manager):
@@ -60,7 +61,7 @@ class GameController:
         if game_state['current_page'] < 8:
             self.game_state_model.advance_page()
         else:
-            self.game_state_model.update_state({'game_status': 'completed'})
+            self.game_state_model.update_state({'game_status': GAME_STATUS_COMPLETED})
         
         response_data = {
             'message': 'Page solved successfully! You can now guess a letter.',
@@ -145,7 +146,7 @@ class GameController:
         })
         
         if is_correct:
-            self.game_state_model.update_state({'game_status': 'completed'})
+            self.game_state_model.update_state({'game_status': GAME_STATUS_COMPLETED})
             return jsonify({
                 'correct': True,
                 'message': 'Congratulations! You guessed the word correctly!'

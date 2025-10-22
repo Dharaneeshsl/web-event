@@ -1,12 +1,12 @@
 import os
 from flask import Flask, jsonify
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
 from datetime import datetime
+from flask_socketio import SocketIO
 
 from .config import config
 from .database import db_manager
-from .routes import api_bp, jwt
+from .routes import api_bp
 
 def create_app():
     app = Flask(__name__)
@@ -14,8 +14,8 @@ def create_app():
     app.config.from_object(config['default'])
     
     db_manager.init_app(app)
-    jwt.init_app(app)
     CORS(app, origins=app.config['CORS_ORIGINS'])
+    socketio = SocketIO(app, cors_allowed_origins=app.config.get('CORS_ORIGINS', '*'))
     
     app.register_blueprint(api_bp)
     
@@ -59,10 +59,14 @@ def create_app():
             'max_teams': 20
         })
     
+    # Expose socketio via app extensions
+    app.extensions = getattr(app, 'extensions', {})
+    app.extensions['socketio'] = socketio
     return app
 
 app = create_app()
+socketio = app.extensions['socketio']
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 

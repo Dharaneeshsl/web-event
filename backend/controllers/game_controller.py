@@ -1,7 +1,6 @@
-from flask import request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import request, jsonify, current_app
 from datetime import datetime
-from ..services.game_service import GameService
+from ..services.game_service import GameManager
 from ..models.team import Team
 from ..models.page import Page
 from ..models.game_state import GameState
@@ -22,12 +21,11 @@ class GameController:
             'game_status': game_state['game_status'],
             'revealed_letters': game_state.get('revealed_letters', {}),
             'page_info': current_page,
-            'word': GameService.WORD
+            'word': GameManager.WORD
         }), 200
     
-    @jwt_required()
     def solve_page(self):
-        team_id = get_jwt_identity()
+        team_id = request.headers.get('X-Team-Id')
         team = self.team_model.get_by_id(team_id)
         
         data = request.get_json()
@@ -50,18 +48,36 @@ class GameController:
         if not success:
             return jsonify({'error': 'Page was solved by another team'}), 409
         
-        # Award NONCE randomly
-        if GameService.assign_nonce():
-            self.team_model.update_nonce(team_id, True)
-            nonce_awarded = True
-        else:
-            nonce_awarded = False
-        
         # Advance to next page
         if game_state['current_page'] < 8:
             self.game_state_model.advance_page()
         else:
             self.game_state_model.update_state({'game_status': GAME_STATUS_COMPLETED})
+        
+        # Increment NOMs for first solver
+        self.team_model.increment_noms(team_id)
+        # Track solved page for team
+        try:
+            self.team_model.collection.update_one(
+                {'_id': team['_id']},
+                {'$addToSet': {'solved_pages': game_state['current_page']}}
+            )
+        except Exception:
+            pass
+        # Broadcast page solved and page advance
+        try:
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                socketio.emit('page_solved', {
+                    'page': game_state['current_page'],
+                    'team_code': team.get('code')
+                })
+                new_state = self.game_state_model.get_current()
+                socketio.emit('advance_page', {
+                    'current_page': new_state.get('current_page')
+                })
+        except Exception:
+            pass
         
         response_data = {
             'message': 'Page solved successfully! You can now guess a letter.',
@@ -69,15 +85,10 @@ class GameController:
             'first_solver': True
         }
         
-        if nonce_awarded:
-            response_data['nonce_awarded'] = True
-            response_data['message'] += ' You have been awarded a NONCE!'
-        
         return jsonify(response_data), 200
     
-    @jwt_required()
     def guess_letter(self):
-        team_id = get_jwt_identity()
+        team_id = request.headers.get('X-Team-Id')
         team = self.team_model.get_by_id(team_id)
         data = request.get_json()
         letter = data.get('letter', '').strip().upper()
@@ -100,7 +111,7 @@ class GameController:
         if letter in game_state.get('revealed_letters', {}):
             return jsonify({'error': 'Letter already revealed'}), 400
         
-        positions = GameService.get_letter_positions(letter)
+        positions = GameManager.get_letter_positions(letter)
         
         # Mark letter as guessed for this page
         self.page_model.collection.update_one(
@@ -110,6 +121,16 @@ class GameController:
         
         if positions:
             self.game_state_model.reveal_letter(letter, positions)
+            # Broadcast letter reveal
+            try:
+                socketio = current_app.extensions.get('socketio')
+                if socketio:
+                    socketio.emit('letter_guessed', {
+                        'letter': letter,
+                        'positions': positions
+                    })
+            except Exception:
+                pass
             return jsonify({
                 'correct': True,
                 'letter': letter,
@@ -123,9 +144,8 @@ class GameController:
                 'message': f'Letter {letter} not found in the word'
             }), 200
     
-    @jwt_required()
     def guess_word(self):
-        team_id = get_jwt_identity()
+        team_id = request.headers.get('X-Team-Id')
         team = self.team_model.get_by_id(team_id)
         
         data = request.get_json()
@@ -137,7 +157,7 @@ class GameController:
         if len(team.get('word_guesses', [])) >= 3:
             return jsonify({'error': 'No more word guesses remaining'}), 400
         
-        is_correct = GameService.validate_word_guess(guess)
+        is_correct = GameManager.validate_word_guess(guess)
         
         self.team_model.add_guess(team_id, {
             'guess': guess,
@@ -147,12 +167,33 @@ class GameController:
         
         if is_correct:
             self.game_state_model.update_state({'game_status': GAME_STATUS_COMPLETED})
+            # Broadcast word guessed
+            try:
+                socketio = current_app.extensions.get('socketio')
+                if socketio:
+                    socketio.emit('word_guessed', {
+                        'team_code': team.get('code'),
+                        'correct': True
+                    })
+            except Exception:
+                pass
             return jsonify({
                 'correct': True,
                 'message': 'Congratulations! You guessed the word correctly!'
             }), 200
         else:
-            remaining = 3 - len(team.get('word_guesses', [])) - 1
+            self.team_model.decrement_guesses_left(team_id)
+            remaining = max(0, (team.get('guesses_left', 3) - 1))
+            # Broadcast wrong word guess
+            try:
+                socketio = current_app.extensions.get('socketio')
+                if socketio:
+                    socketio.emit('word_guessed', {
+                        'team_code': team.get('code'),
+                        'correct': False
+                    })
+            except Exception:
+                pass
             return jsonify({
                 'correct': False,
                 'message': f'Incorrect guess. {remaining} guesses remaining.',
@@ -161,22 +202,19 @@ class GameController:
     
     def leaderboard(self):
         teams = self.team_model.get_all()
-        game_state = self.game_state_model.get_current()
-        revealed_letters = game_state.get('revealed_letters', {})
-        
         rankings = []
         for team in teams:
-            score = self.team_model.calculate_score(team, revealed_letters)
+            greens, yellows = GameManager.best_team_scores(team)
             rankings.append({
-                'name': team['name'],
-                'code': team['code'],
-                'greens': score['greens'],
-                'yellows': score['yellows'],
-                'has_nonce': score['has_nonce'],
-                'word_guesses_count': len(team.get('word_guesses', []))
+                'name': team.get('name'),
+                'code': team.get('code'),
+                'greens': greens,
+                'yellows': yellows,
+                'NOMs': team.get('NOMs', 0),
+                'word_guesses_count': len(team.get('word_guesses', [])),
+                'guesses_left': team.get('guesses_left', 3)
             })
-        
-        rankings.sort(key=lambda x: (-x['greens'], -x['has_nonce'], -x['yellows']))
+        rankings.sort(key=lambda x: (-x['greens'], -x['NOMs'], -x['yellows']))
         return jsonify({'rankings': rankings}), 200
     
     def start_game(self):
@@ -207,11 +245,5 @@ class GameController:
             'revealed_letters': {},
             'game_status': 'waiting'
         })
-        
-        # Reset teams' nonce status
-        self.team_model.collection.update_many(
-            {},
-            {'$set': {'has_nonce': False}}
-        )
         
         return jsonify({'message': 'Game reset successfully'}), 200

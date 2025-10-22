@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from bson import ObjectId
 from .base import BaseModel
+from ..services.game_service import GameManager
 
 class Team(BaseModel):
     def __init__(self, db_manager):
@@ -19,32 +20,22 @@ class Team(BaseModel):
         )
         return result.modified_count > 0
     
-    def update_nonce(self, team_id, has_nonce):
-        return self.update(team_id, {'has_nonce': has_nonce})
+    def increment_noms(self, team_id):
+        return self.collection.update_one({'_id': ObjectId(team_id)}, {'$inc': {'NOMs': 1}}).modified_count > 0
+
+    def decrement_guesses_left(self, team_id):
+        team = self.get_by_id(team_id)
+        current = team.get('guesses_left', 3) if team else 3
+        new_val = max(0, current - 1)
+        return self.update(team_id, {'guesses_left': new_val})
     
     def calculate_score(self, team, revealed_letters):
-        word = "RICARDIAN CONTRACT"
-        greens = 0
-        yellows = 0
-        
-        # Count actual revealed positions (greens)
-        for letter, positions in revealed_letters.items():
-            if isinstance(positions, list):
-                greens += len(positions)
-            else:
-                greens += 1
-        
-        # Calculate yellows based on team's word guesses
-        word_guesses = team.get('word_guesses', [])
-        for guess_data in word_guesses:
-            guess = guess_data.get('guess', '')
-            if guess and not guess_data.get('correct', False):
-                yellows += self._calculate_yellows_for_guess(guess, word)
-        
+        # Use best guess against the target word to compute greens/yellows
+        greens, yellows = GameManager.best_team_scores(team)
         return {
             'greens': greens,
             'yellows': yellows,
-            'has_nonce': team.get('has_nonce', False)
+            'NOMs': team.get('NOMs', 0)
         }
     
     def _calculate_yellows_for_guess(self, guess, word):
@@ -91,7 +82,12 @@ class Team(BaseModel):
             'code': code,
             'password_hash': AuthService.hash_password(password),
             'word_guesses': [],
-            'has_nonce': False,
+            'guesses_left': 3,
+            'greens': 0,
+            'yellows': 0,
+            'NOMs': 0,
+            'solved_pages': [],
+            'current_word_state': ['_' for _ in GameManager.WORD],
             'last_activity': datetime.utcnow()
         }
 
@@ -110,7 +106,8 @@ class Team(BaseModel):
         return {
             'total_word_guesses': len(team.get('word_guesses', [])),
             'correct_guesses': len([g for g in team.get('word_guesses', []) if g.get('correct')]),
-            'has_nonce': team.get('has_nonce', False),
+            'guesses_left': team.get('guesses_left', 3),
+            'NOMs': team.get('NOMs', 0),
             'created_at': team.get('created_at'),
             'last_activity': team.get('last_activity')
         }

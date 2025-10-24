@@ -19,26 +19,11 @@ def create_app():
     
     app.register_blueprint(api_bp)
     
-    # Initialize database
-    pages_collection = db_manager.get_collection('pages')
-    if pages_collection.count_documents({}) == 0:
-        pages = [
-            {'number': 1, 'letter': 'R', 'puzzle': 'Blockchain verification process', 'solution': 'PROOF_OF_WORK'},
-            {'number': 2, 'letter': 'I', 'puzzle': 'Distributed ledger technology', 'solution': 'BLOCKCHAIN'},
-            {'number': 3, 'letter': 'C', 'puzzle': 'Cryptographic hash function', 'solution': 'SHA256'},
-            {'number': 4, 'letter': 'A', 'puzzle': 'Smart contract platform', 'solution': 'ETHEREUM'},
-            {'number': 5, 'letter': 'D', 'puzzle': 'Digital asset ownership', 'solution': 'NFT'},
-            {'number': 6, 'letter': 'N', 'puzzle': 'Consensus mechanism', 'solution': 'NONCE'},
-            {'number': 7, 'letter': 'O', 'puzzle': 'Decentralized exchange', 'solution': 'DEX'},
-            {'number': 8, 'letter': 'T', 'puzzle': 'Token standard', 'solution': 'ERC20'}
-        ]
-        
-        for page in pages:
-            page['is_solved'] = False
-            page['solved_by'] = None
-            page['solved_at'] = None
-            page['created_at'] = datetime.utcnow()
-            pages_collection.insert_one(page)
+    # Initialize database using Page model
+    from .models.page import Page
+    page_model = Page(db_manager)
+    if page_model.count() == 0:
+        page_model.create_default_pages()
     
     game_state_collection = db_manager.get_collection('game_state')
     if game_state_collection.count_documents({'type': 'current'}) == 0:

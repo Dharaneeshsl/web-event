@@ -2,6 +2,9 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 from .base import BaseModel
 from ..services.game_service import GameManager
+import structlog
+
+logger = structlog.get_logger()
 
 class Team(BaseModel):
     def __init__(self, db_manager):
@@ -10,18 +13,35 @@ class Team(BaseModel):
     def get_by_code(self, code):
         return self.collection.find_one({'code': code})
     
+    def get_by_name(self, name):
+        return self.collection.find_one({'name': name})
+    
     def get_all(self):
         return list(self.collection.find())
     
     def add_guess(self, team_id, word_guess):
         result = self.collection.update_one(
             {'_id': ObjectId(team_id)},
-            {'$push': {'word_guesses': word_guess}}
+            {
+                '$push': {'word_guesses': word_guess},
+                '$set': {'last_activity': datetime.utcnow()}
+            }
         )
+        if result.modified_count > 0:
+            logger.info("Team word guess added", team_id=team_id, guess=word_guess.get('guess'))
         return result.modified_count > 0
     
     def increment_noms(self, team_id):
-        return self.collection.update_one({'_id': ObjectId(team_id)}, {'$inc': {'NOMs': 1}}).modified_count > 0
+        result = self.collection.update_one(
+            {'_id': ObjectId(team_id)}, 
+            {
+                '$inc': {'NOMs': 1},
+                '$set': {'last_activity': datetime.utcnow()}
+            }
+        ).modified_count > 0
+        if result:
+            logger.info("Team NOMs incremented", team_id=team_id)
+        return result
 
     def decrement_guesses_left(self, team_id):
         team = self.get_by_id(team_id)
@@ -38,19 +58,7 @@ class Team(BaseModel):
             'NOMs': team.get('NOMs', 0)
         }
     
-    def _calculate_yellows_for_guess(self, guess, word):
-        """Calculate yellow letters for a single word guess"""
-        yellows = 0
-        word_letters = list(word)
-        guess_letters = list(guess)
-        
-        # Count letters that are in the word but in wrong positions
-        for i, letter in enumerate(guess_letters):
-            if i < len(word_letters) and letter != word_letters[i]:
-                if letter in word_letters:
-                    yellows += 1
-        
-        return yellows
+    # Removed duplicate yellow calculation - using GameManager.evaluate_guess() instead
 
     def get_active_teams(self):
         """Get teams active in last 24 hours"""
@@ -68,8 +76,14 @@ class Team(BaseModel):
     def create_team(self, name, password, code=None):
         """Create team with validation"""
         from ..services.auth_service import AuthService
+        from ..config import config
 
-        if self.get_by_code(name):
+        # Validate password length
+        min_length = config['default'].PASSWORD_MIN_LENGTH
+        if len(password) < min_length:
+            return False, None, {'password': f'Password must be at least {min_length} characters'}
+
+        if self.get_by_name(name):
             return False, None, {'name': 'Name already exists'}
 
         if not code:
@@ -93,8 +107,10 @@ class Team(BaseModel):
 
         try:
             team_id = self.create(team_data)
+            logger.info("Team created successfully", team_id=team_id, name=name, code=code)
             return True, team_id, None
         except Exception as e:
+            logger.error("Failed to create team", error=str(e), name=name)
             return False, None, {'error': str(e)}
 
     def get_team_stats(self, team_id):

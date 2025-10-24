@@ -41,17 +41,14 @@ def format_leaderboard(teams: List[Dict[str, Any]], revealed_letters: Dict[str, 
         for g in guesses:
             guess = (g.get('guess') or '').upper()
             if guess and not g.get('correct', False):
-                yellows += _calculate_yellows_for_guess(guess, GAME_WORD)
+                # Use GameManager for consistent scoring
+                from ..services.game_service import GameManager
+                _, yellows_for_guess = GameManager.evaluate_guess(guess)
+                yellows += yellows_for_guess
         has_nonce = bool(team.get('has_nonce', False))
         return greens, yellows, has_nonce
 
-    def _calculate_yellows_for_guess(guess: str, word: str) -> int:
-        yellows = 0
-        word_letters = list(word)
-        for i, ch in enumerate(guess):
-            if i < len(word_letters) and ch != word_letters[i] and ch in word_letters:
-                yellows += 1
-        return yellows
+    # Removed duplicate yellow calculation - using GameManager.evaluate_guess() instead
 
     leaderboard = []
     for team in teams:

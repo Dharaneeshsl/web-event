@@ -1,4 +1,5 @@
 from flask import request, jsonify, current_app
+from flask_jwt_extended import get_jwt_identity
 from datetime import datetime
 from ..services.game_service import GameManager
 from ..models.team import Team
@@ -25,7 +26,7 @@ class GameController:
         }), 200
     
     def solve_page(self):
-        team_id = request.headers.get('X-Team-Id')
+        team_id = get_jwt_identity()
         team = self.team_model.get_by_id(team_id)
         
         data = request.get_json()
@@ -88,7 +89,7 @@ class GameController:
         return jsonify(response_data), 200
     
     def guess_letter(self):
-        team_id = request.headers.get('X-Team-Id')
+        team_id = get_jwt_identity()
         team = self.team_model.get_by_id(team_id)
         data = request.get_json()
         letter = data.get('letter', '').strip().upper()
@@ -145,7 +146,7 @@ class GameController:
             }), 200
     
     def guess_word(self):
-        team_id = request.headers.get('X-Team-Id')
+        team_id = get_jwt_identity()
         team = self.team_model.get_by_id(team_id)
         
         data = request.get_json()

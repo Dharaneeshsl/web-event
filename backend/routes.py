@@ -1,4 +1,5 @@
 from flask import Blueprint
+from flask_jwt_extended import jwt_required
 from .controllers.auth_controller import AuthController
 from .controllers.game_controller import GameController
 from .database import db_manager
@@ -19,32 +20,39 @@ def login():
 
 ## Profile route removed (JWT-dependent)
 
-# Game routes
+# Game routes (JWT protected)
 @api_bp.route('/game/status', methods=['GET'])
+@jwt_required()
 def game_status():
     return game_controller.status()
 
 @api_bp.route('/game/solve', methods=['POST'])
+@jwt_required()
 def solve_page():
     return game_controller.solve_page()
 
 @api_bp.route('/game/guess-letter', methods=['POST'])
+@jwt_required()
 def guess_letter():
     return game_controller.guess_letter()
 
 @api_bp.route('/game/guess-word', methods=['POST'])
+@jwt_required()
 def guess_word():
     return game_controller.guess_word()
 
 @api_bp.route('/leaderboard', methods=['GET'])
+@jwt_required()
 def leaderboard():
     return game_controller.leaderboard()
 
 @api_bp.route('/game/start', methods=['POST'])
+@jwt_required()
 def start_game():
     return game_controller.start_game()
 
 @api_bp.route('/game/reset', methods=['POST'])
+@jwt_required()
 def reset_game():
     return game_controller.reset_game()
 

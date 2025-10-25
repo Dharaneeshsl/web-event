@@ -32,20 +32,24 @@ def create_app():
     app.register_blueprint(api_bp)
     
     # Initialize database using Page model
-    from .models.page import Page
-    page_model = Page(db_manager)
-    if page_model.count() == 0:
-        page_model.create_default_pages()
-    
-    game_state_collection = db_manager.get_collection('game_state')
-    if game_state_collection.count_documents({'type': 'current'}) == 0:
-        game_state = {
-            'type': 'current',
-            'current_page': 1,
-            'revealed_letters': {},
-            'game_status': 'waiting'
-        }
-        game_state_collection.insert_one(game_state)
+    try:
+        from .models.page import Page
+        page_model = Page(db_manager)
+        if page_model.count() == 0:
+            page_model.create_default_pages()
+        
+        game_state_collection = db_manager.get_collection('game_state')
+        if game_state_collection.count_documents({'type': 'current'}) == 0:
+            game_state = {
+                'type': 'current',
+                'current_page': 1,
+                'revealed_letters': {},
+                'game_status': 'waiting'
+            }
+            game_state_collection.insert_one(game_state)
+    except Exception as e:
+        logger.error("Failed to initialize database", error=str(e))
+        raise RuntimeError(f"Database initialization failed: {str(e)}")
     
     @app.route('/')
     def index():

@@ -21,14 +21,12 @@ class AuthController:
         if len(password) < 6:
             return jsonify({'error': 'Password must be at least 6 characters'}), 400
         
-        # Check team cap
-        team_count = self.team_model.collection.count_documents({})
-        if team_count >= 20:
-            return jsonify({'error': 'Maximum number of teams (20) reached'}), 400
-        
         # Use team_model.create_team() for consistent team creation
+        # The create_team method handles team cap validation atomically
         success, team_id, errors = self.team_model.create_team(name, password)
         if not success:
+            if 'Maximum number of teams' in str(errors):
+                return jsonify({'error': 'Maximum number of teams (20) reached'}), 400
             return jsonify({'error': errors}), 400
         
         # Get the created team to get the code

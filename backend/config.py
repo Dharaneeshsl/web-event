@@ -4,12 +4,12 @@ from datetime import timedelta
 
 class Config:
     # Flask Configuration
-    SECRET_KEY = env_config('SECRET_KEY', default='hashquest-secret-key-change-in-production')
+    SECRET_KEY = env_config('SECRET_KEY')  # No default - must be set
     DEBUG = env_config('DEBUG', default=False, cast=bool)
     TESTING = env_config('TESTING', default=False, cast=bool)
     
     # JWT Configuration
-    JWT_SECRET_KEY = env_config('JWT_SECRET_KEY', default='hashquest-jwt-secret-change-in-production')
+    JWT_SECRET_KEY = env_config('JWT_SECRET_KEY')  # No default - must be set
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=env_config('JWT_ACCESS_TOKEN_EXPIRES_HOURS', default=24, cast=int))
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=env_config('JWT_REFRESH_TOKEN_EXPIRES_DAYS', default=30, cast=int))
     JWT_BLACKLIST_ENABLED = True
@@ -37,6 +37,7 @@ class Config:
     BCRYPT_LOG_ROUNDS = env_config('BCRYPT_LOG_ROUNDS', default=12, cast=int)
     PASSWORD_MIN_LENGTH = env_config('PASSWORD_MIN_LENGTH', default=6, cast=int)
     TEAM_CODE_LENGTH = env_config('TEAM_CODE_LENGTH', default=6, cast=int)
+    ADMIN_TOKEN = env_config('ADMIN_TOKEN', default='admin-secret')
     
     # Logging Configuration
     LOG_LEVEL = env_config('LOG_LEVEL', default='INFO')

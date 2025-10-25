@@ -126,6 +126,8 @@ class BaseModel:
     def bulk_update(self, query: Dict[str, Any], update: Dict[str, Any]) -> int:
         """Update multiple documents"""
         try:
+            if '$set' not in update:
+                update['$set'] = {}
             update['$set']['updated_at'] = datetime.utcnow()
             result = self.collection.update_many(query, update)
             logger.info("Bulk documents updated", collection=self.collection_name, count=result.modified_count)

@@ -28,6 +28,8 @@ class GameController:
     def solve_page(self):
         team_id = get_jwt_identity()
         team = self.team_model.get_by_id(team_id)
+        if not team:
+            return jsonify({'error': 'Team not found'}), 404
         
         data = request.get_json()
         answer = data.get('answer', '').strip().upper()
@@ -102,6 +104,8 @@ class GameController:
     def guess_letter(self):
         team_id = get_jwt_identity()
         team = self.team_model.get_by_id(team_id)
+        if not team:
+            return jsonify({'error': 'Team not found'}), 404
         data = request.get_json()
         letter = data.get('letter', '').strip().upper()
         
@@ -177,6 +181,8 @@ class GameController:
     def guess_word(self):
         team_id = get_jwt_identity()
         team = self.team_model.get_by_id(team_id)
+        if not team:
+            return jsonify({'error': 'Team not found'}), 404
         
         data = request.get_json()
         guess = data.get('guess', '').strip().upper()
@@ -276,6 +282,21 @@ class GameController:
                 'solved_at': None,
                 'first_solver_team_code': None,
                 'letter_guessed': False
+            }}
+        )
+        
+        # Reset all teams
+        self.team_model.collection.update_many(
+            {},
+            {'$set': {
+                'word_guesses': [],
+                'guesses_left': 3,
+                'greens': 0,
+                'yellows': 0,
+                'NOMs': 0,
+                'solved_pages': [],
+                'letter_guesses': [],
+                'current_word_state': ['_' for _ in GameManager.WORD]
             }}
         )
         

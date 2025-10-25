@@ -124,6 +124,11 @@ class Team(BaseModel):
         if len(password) < min_length:
             return False, None, {'password': f'Password must be at least {min_length} characters'}
 
+        # Check team cap atomically
+        team_count = self.collection.count_documents({})
+        if team_count >= 20:
+            return False, None, {'error': 'Maximum number of teams (20) reached'}
+
         if self.get_by_name(name):
             return False, None, {'name': 'Name already exists'}
 

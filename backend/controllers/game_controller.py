@@ -291,8 +291,6 @@ class GameController:
             {'$set': {
                 'word_guesses': [],
                 'guesses_left': 3,
-                'greens': 0,
-                'yellows': 0,
                 'NOMs': 0,
                 'solved_pages': [],
                 'letter_guesses': [],

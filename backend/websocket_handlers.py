@@ -36,11 +36,16 @@ def register_socketio_handlers(socketio, db_manager):
                 return
             
             # Decode JWT token to get team info
-            decoded = decode_token(token)
-            team_id = decoded.get('sub')
-            
-            if not team_id:
-                emit('error', {'message': 'Invalid token'})
+            try:
+                decoded = decode_token(token)
+                team_id = decoded.get('sub')
+                
+                if not team_id:
+                    emit('error', {'message': 'Invalid token'})
+                    return
+            except Exception as token_error:
+                logger.error("Token decode error", error=str(token_error))
+                emit('error', {'message': 'Invalid or expired token'})
                 return
             
             # Get team info

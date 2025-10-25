@@ -26,27 +26,18 @@ class AuthController:
         if team_count >= 20:
             return jsonify({'error': 'Maximum number of teams (20) reached'}), 400
         
-        if self.team_model.get_by_code(name):
-            return jsonify({'error': 'Team name already exists'}), 400
+        # Use team_model.create_team() for consistent team creation
+        success, team_id, errors = self.team_model.create_team(name, password)
+        if not success:
+            return jsonify({'error': errors}), 400
         
-        code = AuthService.generate_team_code()
-        while self.team_model.get_by_code(code):
-            code = AuthService.generate_team_code()
-        
-        team_data = {
-            'name': name,
-            'code': code,
-            'password_hash': AuthService.hash_password(password),
-            'word_guesses': [],
-            'has_nonce': False
-        }
-        
-        team_id = self.team_model.create(team_data)
+        # Get the created team to get the code
+        team = self.team_model.get_by_id(team_id)
         token = create_access_token(identity=team_id)
         
         return jsonify({
             'team_id': team_id,
-            'team_code': code,
+            'team_code': team['code'],
             'access_token': token
         }), 201
     

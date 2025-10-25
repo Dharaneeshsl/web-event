@@ -3,6 +3,8 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from datetime import datetime
 from flask_socketio import SocketIO
+from flask_jwt_extended import JWTManager
+import structlog
 
 from .config import config
 from .database import db_manager
@@ -13,7 +15,17 @@ def create_app():
     
     app.config.from_object(config['default'])
     
+    # Configure structlog
+    structlog.configure(
+        processors=[
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.JSONRenderer()
+        ]
+    )
+    
+    # Initialize extensions
     db_manager.init_app(app)
+    jwt = JWTManager(app)
     CORS(app, origins=app.config['CORS_ORIGINS'])
     socketio = SocketIO(app, cors_allowed_origins=app.config.get('CORS_ORIGINS', '*'))
     

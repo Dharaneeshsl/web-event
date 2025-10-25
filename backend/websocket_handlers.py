@@ -4,10 +4,10 @@ WebSocket event handlers for HashQuest game
 from flask_socketio import emit, join_room, leave_room
 from flask import request
 from flask_jwt_extended import decode_token
-from ..models.team import Team
-from ..models.game_state import GameState
-from ..models.page import Page
-from ..services.game_service import GameManager
+from models.team import Team
+from models.game_state import GameState
+from models.page import Page
+from services.game_service import GameManager
 import structlog
 
 logger = structlog.get_logger()

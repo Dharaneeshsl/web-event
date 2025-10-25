@@ -54,10 +54,13 @@ class GameController:
         if not success:
             return jsonify({'error': 'Page was solved by another team'}), 409
         
-        # Advance to next page
+        # Always advance page first
         if game_state['current_page'] < 8:
             self.game_state_model.advance_page()
-        else:
+        
+        # Check if we just solved the last page
+        new_state = self.game_state_model.get_current()
+        if new_state['current_page'] > 8:
             self.game_state_model.update_state({'game_status': GAME_STATUS_COMPLETED})
         
         # Increment NOMs for first solver
@@ -111,7 +114,13 @@ class GameController:
         if game_state['game_status'] != 'in_progress':
             return jsonify({'error': 'Game is not in progress'}), 400
         
+        # Check if all pages have been solved
+        if game_state['current_page'] > 8:
+            return jsonify({'error': 'All pages have been solved'}), 400
+        
         current_page = self.page_model.get_by_number(game_state['current_page'])
+        if not current_page:
+            return jsonify({'error': 'Invalid page'}), 400
         
         # Check if this team is the first solver
         if current_page.get('first_solver_team_code') != team['code']:

@@ -19,26 +19,13 @@ class Config:
     MONGODB_URI = env_config('MONGODB_URI', default='mongodb://localhost:27017/hashquest')
     MONGODB_DATABASE = env_config('MONGODB_DATABASE', default='hashquest')
     
-    # Redis Configuration
-    REDIS_URL = env_config('REDIS_URL', default='redis://localhost:6379/0')
     
     # CORS Configuration
     CORS_ORIGINS = env_config('CORS_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000').split(',')
     CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization', 'X-Requested-With']
     CORS_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
     
-    # Rate Limiting
-    RATELIMIT_STORAGE_URL = env_config('RATELIMIT_STORAGE_URL', default='redis://localhost:6379/1')
-    RATELIMIT_DEFAULT = env_config('RATELIMIT_DEFAULT', default='1000 per hour')
     
-    # Email Configuration
-    MAIL_SERVER = env_config('MAIL_SERVER', default='smtp.gmail.com')
-    MAIL_PORT = env_config('MAIL_PORT', default=587, cast=int)
-    MAIL_USE_TLS = env_config('MAIL_USE_TLS', default=True, cast=bool)
-    MAIL_USE_SSL = env_config('MAIL_USE_SSL', default=False, cast=bool)
-    MAIL_USERNAME = env_config('MAIL_USERNAME', default='')
-    MAIL_PASSWORD = env_config('MAIL_PASSWORD', default='')
-    MAIL_DEFAULT_SENDER = env_config('MAIL_DEFAULT_SENDER', default='noreply@hashquest.com')
     
     # Game Configuration
     MAX_TEAMS = env_config('MAX_TEAMS', default=20, cast=int)

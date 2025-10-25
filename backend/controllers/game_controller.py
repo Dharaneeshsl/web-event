@@ -36,6 +36,11 @@ class GameController:
             return jsonify({'error': 'Answer required'}), 400
         
         game_state = self.game_state_model.get_current()
+        
+        # Validate game status
+        if game_state['game_status'] != 'in_progress':
+            return jsonify({'error': 'Game is not in progress'}), 400
+        
         current_page = self.page_model.get_by_number(game_state['current_page'])
         
         if current_page.get('is_solved'):
@@ -61,7 +66,10 @@ class GameController:
         try:
             self.team_model.collection.update_one(
                 {'_id': team['_id']},
-                {'$addToSet': {'solved_pages': game_state['current_page']}}
+                {
+                    '$addToSet': {'solved_pages': game_state['current_page']},
+                    '$set': {'last_activity': datetime.utcnow()}
+                }
             )
         except Exception:
             pass
@@ -72,11 +80,11 @@ class GameController:
                 socketio.emit('page_solved', {
                     'page': game_state['current_page'],
                     'team_code': team.get('code')
-                })
+                }, room='updates')
                 new_state = self.game_state_model.get_current()
                 socketio.emit('advance_page', {
                     'current_page': new_state.get('current_page')
-                })
+                }, room='updates')
         except Exception:
             pass
         
@@ -98,6 +106,11 @@ class GameController:
             return jsonify({'error': 'Invalid letter'}), 400
         
         game_state = self.game_state_model.get_current()
+        
+        # Validate game status
+        if game_state['game_status'] != 'in_progress':
+            return jsonify({'error': 'Game is not in progress'}), 400
+        
         current_page = self.page_model.get_by_number(game_state['current_page'])
         
         # Check if this team is the first solver
@@ -107,6 +120,10 @@ class GameController:
         # Check if letter already guessed for this page
         if current_page.get('letter_guessed'):
             return jsonify({'error': 'Letter already guessed for this page'}), 400
+        
+        # Check if this team has already guessed this letter
+        if self.team_model.has_guessed_letter(team_id, letter):
+            return jsonify({'error': 'You have already guessed this letter'}), 400
         
         # Check if letter already revealed
         if letter in game_state.get('revealed_letters', {}):
@@ -120,6 +137,9 @@ class GameController:
             {'$set': {'letter_guessed': True}}
         )
         
+        # Track this letter guess for the team
+        self.team_model.add_letter_guess(team_id, letter, game_state['current_page'])
+        
         if positions:
             self.game_state_model.reveal_letter(letter, positions)
             # Broadcast letter reveal
@@ -129,7 +149,7 @@ class GameController:
                     socketio.emit('letter_guessed', {
                         'letter': letter,
                         'positions': positions
-                    })
+                    }, room='updates')
             except Exception:
                 pass
             return jsonify({
@@ -155,6 +175,12 @@ class GameController:
         if not guess:
             return jsonify({'error': 'Word guess required'}), 400
         
+        game_state = self.game_state_model.get_current()
+        
+        # Validate game status
+        if game_state['game_status'] not in ['in_progress', 'completed']:
+            return jsonify({'error': 'Game is not in progress or completed'}), 400
+        
         if len(team.get('word_guesses', [])) >= 3:
             return jsonify({'error': 'No more word guesses remaining'}), 400
         
@@ -175,7 +201,7 @@ class GameController:
                     socketio.emit('word_guessed', {
                         'team_code': team.get('code'),
                         'correct': True
-                    })
+                    }, room='updates')
             except Exception:
                 pass
             return jsonify({
@@ -183,8 +209,12 @@ class GameController:
                 'message': 'Congratulations! You guessed the word correctly!'
             }), 200
         else:
+            # Decrement guesses left and get the new count
             self.team_model.decrement_guesses_left(team_id)
-            remaining = max(0, (team.get('guesses_left', 3) - 1))
+            # Get updated team data to get accurate remaining count
+            updated_team = self.team_model.get_by_id(team_id)
+            remaining = updated_team.get('guesses_left', 0)
+            
             # Broadcast wrong word guess
             try:
                 socketio = current_app.extensions.get('socketio')
@@ -192,7 +222,7 @@ class GameController:
                     socketio.emit('word_guessed', {
                         'team_code': team.get('code'),
                         'correct': False
-                    })
+                    }, room='updates')
             except Exception:
                 pass
             return jsonify({

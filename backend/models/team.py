@@ -9,6 +9,22 @@ logger = structlog.get_logger()
 class Team(BaseModel):
     def __init__(self, db_manager):
         super().__init__('teams', db_manager)
+        self._create_indexes()
+    
+    def _create_indexes(self):
+        """Create database indexes for performance"""
+        try:
+            # Index on team code for fast lookups
+            self.collection.create_index('code', unique=True)
+            # Index on team name for fast lookups
+            self.collection.create_index('name', unique=True)
+            # Index on last_activity for active team queries
+            self.collection.create_index('last_activity')
+            # Compound index for leaderboard queries
+            self.collection.create_index([('NOMs', -1), ('last_activity', -1)])
+            logger.info("Team indexes created successfully")
+        except Exception as e:
+            logger.warning("Failed to create team indexes", error=str(e))
     
     def get_by_code(self, code):
         return self.collection.find_one({'code': code})
@@ -42,6 +58,31 @@ class Team(BaseModel):
         if result:
             logger.info("Team NOMs incremented", team_id=team_id)
         return result
+
+    def add_letter_guess(self, team_id, letter, page_number):
+        """Track a letter guess by this team"""
+        result = self.collection.update_one(
+            {'_id': ObjectId(team_id)},
+            {
+                '$push': {'letter_guesses': {
+                    'letter': letter,
+                    'page_number': page_number,
+                    'timestamp': datetime.utcnow()
+                }},
+                '$set': {'last_activity': datetime.utcnow()}
+            }
+        )
+        if result.modified_count > 0:
+            logger.info("Team letter guess added", team_id=team_id, letter=letter, page=page_number)
+        return result.modified_count > 0
+
+    def has_guessed_letter(self, team_id, letter):
+        """Check if team has already guessed this letter"""
+        team = self.get_by_id(team_id)
+        if not team:
+            return False
+        letter_guesses = team.get('letter_guesses', [])
+        return any(guess['letter'] == letter for guess in letter_guesses)
 
     def decrement_guesses_left(self, team_id):
         team = self.get_by_id(team_id)
@@ -101,6 +142,7 @@ class Team(BaseModel):
             'yellows': 0,
             'NOMs': 0,
             'solved_pages': [],
+            'letter_guesses': [],  # Track letters guessed by this team
             'current_word_state': ['_' for _ in GameManager.WORD],
             'last_activity': datetime.utcnow()
         }

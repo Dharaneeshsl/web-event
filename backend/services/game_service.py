@@ -29,23 +29,31 @@ class GameManager:
         greens = 0
         yellows = 0
 
-        target_counts = {}
-        guess_counts = {}
-
-        # First pass: greens
+        # Track which positions are already green
+        green_positions = set()
+        
+        # First pass: identify greens
         for i in range(n):
             if guess[i] == target[i]:
                 greens += 1
-            else:
-                if target[i].isalpha():
-                    target_counts[target[i]] = target_counts.get(target[i], 0) + 1
-                if guess[i].isalpha():
-                    guess_counts[guess[i]] = guess_counts.get(guess[i], 0) + 1
+                green_positions.add(i)
 
-        # Second pass: yellows
-        for ch, cnt in guess_counts.items():
-            if ch in target_counts:
-                yellows += min(cnt, target_counts[ch])
+        # Count remaining letters in target (excluding greens)
+        target_remaining = {}
+        for i, char in enumerate(target):
+            if i not in green_positions and char.isalpha():
+                target_remaining[char] = target_remaining.get(char, 0) + 1
+
+        # Count remaining letters in guess (excluding greens)
+        guess_remaining = {}
+        for i, char in enumerate(guess):
+            if i not in green_positions and char.isalpha():
+                guess_remaining[char] = guess_remaining.get(char, 0) + 1
+
+        # Calculate yellows: for each letter in guess, count how many can be yellow
+        for char, guess_count in guess_remaining.items():
+            if char in target_remaining:
+                yellows += min(guess_count, target_remaining[char])
 
         return greens, yellows
 

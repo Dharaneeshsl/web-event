@@ -44,6 +44,10 @@ def create_app():
             'max_teams': 20
         })
     
+    # Register WebSocket handlers
+    from .websocket_handlers import register_socketio_handlers
+    register_socketio_handlers(socketio, db_manager)
+    
     # Expose socketio via app extensions
     app.extensions = getattr(app, 'extensions', {})
     app.extensions['socketio'] = socketio

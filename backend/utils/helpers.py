@@ -34,25 +34,15 @@ def get_letter_positions(letter: str) -> List[int]:
 
 
 def format_leaderboard(teams: List[Dict[str, Any]], revealed_letters: Dict[str, List[int]]):
-    def calc_score(team: Dict[str, Any]):
-        greens = sum(len(v) if isinstance(v, list) else 1 for v in revealed_letters.values())
-        yellows = 0
-        guesses = team.get('word_guesses', []) or []
-        for g in guesses:
-            guess = (g.get('guess') or '').upper()
-            if guess and not g.get('correct', False):
-                # Use GameManager for consistent scoring
-                from ..services.game_service import GameManager
-                _, yellows_for_guess = GameManager.evaluate_guess(guess)
-                yellows += yellows_for_guess
-        has_nonce = bool(team.get('has_nonce', False))
-        return greens, yellows, has_nonce
-
-    # Removed duplicate yellow calculation - using GameManager.evaluate_guess() instead
-
+    """Format leaderboard using consistent scoring from GameManager.best_team_scores"""
+    from ..services.game_service import GameManager
+    
     leaderboard = []
     for team in teams:
-        greens, yellows, has_nonce = calc_score(team)
+        # Use GameManager.best_team_scores for consistent scoring
+        greens, yellows = GameManager.best_team_scores(team)
+        has_nonce = bool(team.get('has_nonce', False))
+        
         leaderboard.append({
             'name': team.get('name'),
             'code': team.get('code'),
@@ -62,6 +52,7 @@ def format_leaderboard(teams: List[Dict[str, Any]], revealed_letters: Dict[str, 
             'word_guesses_count': len(team.get('word_guesses', []) or [])
         })
 
+    # Sort by greens desc, NOMs desc, yellows desc
     leaderboard.sort(key=lambda x: (-x['greens'], -int(x['has_nonce']), -x['yellows']))
     return leaderboard
 

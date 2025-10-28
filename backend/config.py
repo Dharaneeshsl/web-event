@@ -30,8 +30,8 @@ class Config:
     # Game Configuration
     MAX_TEAMS = env_config('MAX_TEAMS', default=20, cast=int)
     MAX_WORD_GUESSES = env_config('MAX_WORD_GUESSES', default=3, cast=int)
-    GAME_WORD = env_config('GAME_WORD', default='RICARDIAN CONTRACT')
-    TOTAL_PAGES = env_config('TOTAL_PAGES', default=8, cast=int)
+    GAME_WORD = env_config('GAME_WORD', default='POWERHOUSE')
+    TOTAL_PAGES = env_config('TOTAL_PAGES', default=10, cast=int)
     
     # Security Configuration
     BCRYPT_LOG_ROUNDS = env_config('BCRYPT_LOG_ROUNDS', default=12, cast=int)

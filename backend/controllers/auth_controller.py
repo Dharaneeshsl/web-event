@@ -65,6 +65,5 @@ class AuthController:
             'team_id': str(team['_id']),
             'name': team['name'],
             'code': team['code'],
-            'word_guesses_count': len(team.get('word_guesses', [])),
-            'has_nonce': team.get('has_nonce', False)
+            'word_guesses_count': len(team.get('word_guesses', []))
         }), 200

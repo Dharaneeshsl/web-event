@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from .base import BaseModel
-from ..utils.constants import GAME_WORD, GAME_STATUS_WAITING, GAME_STATUS_ACTIVE, GAME_STATUS_COMPLETED
+from ..utils.constants import GAME_WORD, GAME_STATUS_WAITING, GAME_STATUS_ACTIVE, GAME_STATUS_COMPLETED, TOTAL_PAGES
 import structlog
 
 logger = structlog.get_logger()
@@ -220,7 +220,7 @@ class GameState(BaseModel):
     def can_advance_page(self) -> bool:
         """Check if game can advance to next page"""
         current = self.get_current()
-        return (current.get('current_page', 1) < 8 and 
+        return (current.get('current_page', 1) < TOTAL_PAGES and 
                 current.get('game_status') == GAME_STATUS_ACTIVE)
     
     def get_game_statistics(self) -> Dict[str, Any]:

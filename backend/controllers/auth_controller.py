@@ -18,8 +18,9 @@ class AuthController:
         if len(name) < 2 or len(name) > 50:
             return jsonify({'error': 'Team name must be 2-50 characters'}), 400
         
-        if len(password) < 6:
-            return jsonify({'error': 'Password must be at least 6 characters'}), 400
+        # Basic password complexity: min 8 chars, at least one letter and one digit
+        if len(password) < 8 or not any(c.isalpha() for c in password) or not any(c.isdigit() for c in password):
+            return jsonify({'error': 'Password must be at least 8 chars with letters and digits'}), 400
         
         # Use team_model.create_team() for consistent team creation
         # The create_team method handles team cap validation atomically

@@ -41,19 +41,17 @@ def format_leaderboard(teams: List[Dict[str, Any]], revealed_letters: Dict[str, 
     for team in teams:
         # Use GameManager.best_team_scores for consistent scoring
         greens, yellows = GameManager.best_team_scores(team)
-        has_nonce = bool(team.get('has_nonce', False))
         
         leaderboard.append({
             'name': team.get('name'),
             'code': team.get('code'),
             'greens': greens,
             'yellows': yellows,
-            'has_nonce': has_nonce,
             'word_guesses_count': len(team.get('word_guesses', []) or [])
         })
 
     # Sort by greens desc, NOMs desc, yellows desc
-    leaderboard.sort(key=lambda x: (-x['greens'], -x.get('NOMs', 0), -x['yellows']))
+    leaderboard.sort(key=lambda x: (-x['greens'], -team.get('NOMs', 0), -x['yellows']))
     return leaderboard
 
 

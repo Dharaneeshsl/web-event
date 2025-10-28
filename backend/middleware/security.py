@@ -21,7 +21,9 @@ def admin_required(fn: Callable):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         admin_token_header = request.headers.get('X-Admin-Token')
-        expected = env_config('ADMIN_TOKEN', default='admin-secret')
+        expected = env_config('ADMIN_TOKEN', default='')
+        if not expected:
+            return jsonify({'success': False, 'error': 'Admin token not configured'}), 500
         if not admin_token_header or admin_token_header != expected:
             return jsonify({'success': False, 'error': 'Admin authorization required'}), 403
         return fn(*args, **kwargs)

@@ -56,13 +56,10 @@ class GameController:
         if not success:
             return jsonify({'error': 'Page was solved by another team'}), 409
         
-        # Always advance page first
+        # If not last page, advance; if last page, complete game
         if game_state['current_page'] < TOTAL_PAGES:
             self.game_state_model.advance_page()
-        
-        # Check if we just solved the last page
-        new_state = self.game_state_model.get_current()
-        if new_state['current_page'] > TOTAL_PAGES:
+        else:
             self.game_state_model.update_state({'game_status': GAME_STATUS_COMPLETED})
         
         # Increment NOMs for first solver
@@ -90,8 +87,8 @@ class GameController:
                 socketio.emit('advance_page', {
                     'current_page': new_state.get('current_page')
                 }, room='updates')
-        except Exception:
-            pass
+        except Exception as emit_err:
+            current_app.logger.error('socket_emit_failed', error=str(emit_err))
         
         response_data = {
             'message': 'Page solved successfully! You can now guess a letter.',
@@ -134,9 +131,9 @@ class GameController:
         if current_page.get('letter_guessed'):
             return jsonify({'error': 'Letter already guessed for this page'}), 400
         
-        # Check if this team has already guessed this letter
-        if self.team_model.has_guessed_letter(team_id, letter):
-            return jsonify({'error': 'You have already guessed this letter'}), 400
+        # Check if this team has already guessed this letter on this page
+        if self.team_model.has_guessed_letter(team_id, letter, page_number=game_state['current_page']):
+            return jsonify({'error': 'You have already guessed this letter on this page'}), 400
         
         # Check if letter already revealed
         if letter in game_state.get('revealed_letters', {}):
@@ -163,8 +160,8 @@ class GameController:
                         'letter': letter,
                         'positions': positions
                     }, room='updates')
-            except Exception:
-                pass
+            except Exception as emit_err:
+                current_app.logger.error('socket_emit_failed', error=str(emit_err))
             return jsonify({
                 'correct': True,
                 'letter': letter,
@@ -217,8 +214,8 @@ class GameController:
                         'team_code': team.get('code'),
                         'correct': True
                     }, room='updates')
-            except Exception:
-                pass
+            except Exception as emit_err:
+                current_app.logger.error('socket_emit_failed', error=str(emit_err))
             return jsonify({
                 'correct': True,
                 'message': 'Congratulations! You guessed the word correctly!'
@@ -238,8 +235,8 @@ class GameController:
                         'team_code': team.get('code'),
                         'correct': False
                     }, room='updates')
-            except Exception:
-                pass
+            except Exception as emit_err:
+                current_app.logger.error('socket_emit_failed', error=str(emit_err))
             return jsonify({
                 'correct': False,
                 'message': f'Incorrect guess. {remaining} guesses remaining.',

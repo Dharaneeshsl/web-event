@@ -76,13 +76,15 @@ class Team(BaseModel):
             logger.info("Team letter guess added", team_id=team_id, letter=letter, page=page_number)
         return result.modified_count > 0
 
-    def has_guessed_letter(self, team_id, letter):
-        """Check if team has already guessed this letter"""
+    def has_guessed_letter(self, team_id, letter, page_number=None):
+        """Check if team has already guessed this letter; optionally scoped to a page"""
         team = self.get_by_id(team_id)
         if not team:
             return False
         letter_guesses = team.get('letter_guesses', [])
-        return any(guess['letter'] == letter for guess in letter_guesses)
+        if page_number is None:
+            return any(guess.get('letter') == letter for guess in letter_guesses)
+        return any(guess.get('letter') == letter and guess.get('page_number') == page_number for guess in letter_guesses)
 
     def decrement_guesses_left(self, team_id):
         team = self.get_by_id(team_id)
@@ -125,8 +127,17 @@ class Team(BaseModel):
             return False, None, {'password': f'Password must be at least {min_length} characters'}
 
         # Check team cap atomically
-        team_count = self.collection.count_documents({})
-        if team_count >= 20:
+        from pymongo import ReturnDocument
+        # Use a counters collection for atomic team limit enforcement
+        counters = self.db_manager.get_collection('counters')
+        cap_doc = counters.find_one_and_update(
+            {'_id': 'team_count'},
+            {'$inc': {'count': 1}},
+            upsert=True,
+            return_document=ReturnDocument.AFTER
+        )
+        if cap_doc.get('count', 0) > 20:
+            counters.update_one({'_id': 'team_count'}, {'$inc': {'count': -1}})
             return False, None, {'error': 'Maximum number of teams (20) reached'}
 
         if self.get_by_name(name):
@@ -156,6 +167,8 @@ class Team(BaseModel):
             return True, team_id, None
         except Exception as e:
             logger.error("Failed to create team", error=str(e), name=name)
+            # roll back counter if create failed
+            counters.update_one({'_id': 'team_count'}, {'$inc': {'count': -1}})
             return False, None, {'error': str(e)}
 
     def get_team_stats(self, team_id):

@@ -23,12 +23,21 @@ def create_app():
             structlog.processors.JSONRenderer()
         ]
     )
+    logger = structlog.get_logger()
     
     # Initialize extensions
     db_manager.init_app(app)
     jwt = JWTManager(app)
     CORS(app, origins=app.config['CORS_ORIGINS'])
     socketio = SocketIO(app, cors_allowed_origins=app.config.get('CORS_ORIGINS', '*'))
+
+    # Validate critical env configuration
+    if not app.config.get('SECRET_KEY'):
+        logger.error("Missing SECRET_KEY in environment")
+        raise RuntimeError("SECRET_KEY is required")
+    if not app.config.get('JWT_SECRET_KEY'):
+        logger.error("Missing JWT_SECRET_KEY in environment")
+        raise RuntimeError("JWT_SECRET_KEY is required")
     
     app.register_blueprint(api_bp)
     

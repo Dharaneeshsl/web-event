@@ -130,4 +130,9 @@ def admin_leaderboard():
 
 @api_bp.route('/health', methods=['GET'])
 def health():
-    return {'status': 'healthy'}, 200
+    try:
+        # Ping DB to ensure connectivity
+        db_manager.client.admin.command('ping')
+        return {'status': 'healthy', 'db': 'ok'}, 200
+    except Exception:
+        return {'status': 'degraded', 'db': 'error'}, 500

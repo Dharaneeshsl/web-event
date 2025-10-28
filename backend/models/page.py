@@ -158,13 +158,13 @@ class Page(BaseModel):
             return 0
     
     def create_default_pages(self) -> List[str]:
-        """Create default pages for the game"""
+        """Create default pages for the game. Aligned with current frontend riddles and POWERHOUSE letters."""
         pages_data = [
             {
                 'number': 1,
-                'letter': 'R',
-                'puzzle': 'Blockchain verification process',
-                'solution': 'PROOF_OF_WORK',
+                'letter': 'P',
+                'puzzle': 'I have cities, but no houses. I have mountains, but no trees. I have water, but no fish. What am I?',
+                'solution': 'MAP',
                 'is_solved': False,
                 'solved_by': None,
                 'solved_at': None,
@@ -173,9 +173,9 @@ class Page(BaseModel):
             },
             {
                 'number': 2,
-                'letter': 'I',
-                'puzzle': 'Distributed ledger technology',
-                'solution': 'BLOCKCHAIN',
+                'letter': 'O',
+                'puzzle': 'What has an eye, but cannot see?',
+                'solution': 'NEEDLE',
                 'is_solved': False,
                 'solved_by': None,
                 'solved_at': None,
@@ -184,9 +184,9 @@ class Page(BaseModel):
             },
             {
                 'number': 3,
-                'letter': 'C',
-                'puzzle': 'Cryptographic hash function',
-                'solution': 'SHA256',
+                'letter': 'W',
+                'puzzle': 'What is so fragile that saying its name breaks it?',
+                'solution': 'SILENCE',
                 'is_solved': False,
                 'solved_by': None,
                 'solved_at': None,
@@ -195,9 +195,9 @@ class Page(BaseModel):
             },
             {
                 'number': 4,
-                'letter': 'A',
-                'puzzle': 'Smart contract platform',
-                'solution': 'ETHEREUM',
+                'letter': 'E',
+                'puzzle': 'What comes once in a minute, twice in a moment, but never in a thousand years?',
+                'solution': 'M',
                 'is_solved': False,
                 'solved_by': None,
                 'solved_at': None,
@@ -206,9 +206,9 @@ class Page(BaseModel):
             },
             {
                 'number': 5,
-                'letter': 'D',
-                'puzzle': 'Digital asset ownership',
-                'solution': 'NFT',
+                'letter': 'R',
+                'puzzle': 'I’m tall when I’m young, and I’m short when I’m old. What am I?',
+                'solution': 'CANDLE',
                 'is_solved': False,
                 'solved_by': None,
                 'solved_at': None,
@@ -217,9 +217,9 @@ class Page(BaseModel):
             },
             {
                 'number': 6,
-                'letter': 'N',
-                'puzzle': 'Consensus mechanism',
-                'solution': 'NONCE',
+                'letter': 'H',
+                'puzzle': "What has many keys but can't open a single lock?",
+                'solution': 'PIANO',
                 'is_solved': False,
                 'solved_by': None,
                 'solved_at': None,
@@ -229,8 +229,8 @@ class Page(BaseModel):
             {
                 'number': 7,
                 'letter': 'O',
-                'puzzle': 'Decentralized exchange',
-                'solution': 'DEX',
+                'puzzle': 'What can you hold in your left hand but not in your right?',
+                'solution': 'RIGHT ELBOW',
                 'is_solved': False,
                 'solved_by': None,
                 'solved_at': None,
@@ -239,9 +239,9 @@ class Page(BaseModel):
             },
             {
                 'number': 8,
-                'letter': 'T',
-                'puzzle': 'Token standard',
-                'solution': 'ERC20',
+                'letter': 'U',
+                'puzzle': 'What is always in front of you but can’t be seen?',
+                'solution': 'FUTURE',
                 'is_solved': False,
                 'solved_by': None,
                 'solved_at': None,

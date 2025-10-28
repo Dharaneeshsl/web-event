@@ -1,5 +1,8 @@
+from ..utils.constants import GAME_WORD
+
+
 class GameManager:
-    WORD = "RICARDIAN CONTRACT"
+    WORD = GAME_WORD
 
     @staticmethod
     def unique_letters():

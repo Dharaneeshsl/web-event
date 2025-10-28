@@ -248,6 +248,29 @@ class Page(BaseModel):
                 'first_solver_team_code': None,
                 'solution_used': None
             }
+            ,
+            {
+                'number': 9,
+                'letter': 'S',
+                'puzzle': 'What has hands but cannot clap?',
+                'solution': 'CLOCK',
+                'is_solved': False,
+                'solved_by': None,
+                'solved_at': None,
+                'first_solver_team_code': None,
+                'solution_used': None
+            },
+            {
+                'number': 10,
+                'letter': 'E',
+                'puzzle': 'What gets wetter the more it dries?',
+                'solution': 'TOWEL',
+                'is_solved': False,
+                'solved_by': None,
+                'solved_at': None,
+                'first_solver_team_code': None,
+                'solution_used': None
+            }
         ]
         
         try:

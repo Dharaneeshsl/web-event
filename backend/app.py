@@ -7,6 +7,7 @@ from flask_jwt_extended import JWTManager
 import structlog
 
 from .config import config
+from .utils.constants import TOTAL_PAGES
 from .database import db_manager
 from .routes import api_bp
 
@@ -55,8 +56,8 @@ def create_app():
     def index():
         return jsonify({
             'message': 'HashQuest Backend',
-            'word': 'RICARDIAN CONTRACT',
-            'pages': 8,
+            'word': 'POWERHOUSE',
+            'pages': TOTAL_PAGES,
             'max_teams': 20
         })
     

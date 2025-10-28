@@ -5,7 +5,7 @@ from ..services.game_service import GameManager
 from ..models.team import Team
 from ..models.page import Page
 from ..models.game_state import GameState
-from ..utils.constants import GAME_STATUS_COMPLETED
+from ..utils.constants import GAME_STATUS_COMPLETED, TOTAL_PAGES
 
 class GameController:
     def __init__(self, db_manager):
@@ -57,12 +57,12 @@ class GameController:
             return jsonify({'error': 'Page was solved by another team'}), 409
         
         # Always advance page first
-        if game_state['current_page'] < 8:
+        if game_state['current_page'] < TOTAL_PAGES:
             self.game_state_model.advance_page()
         
         # Check if we just solved the last page
         new_state = self.game_state_model.get_current()
-        if new_state['current_page'] > 8:
+        if new_state['current_page'] > TOTAL_PAGES:
             self.game_state_model.update_state({'game_status': GAME_STATUS_COMPLETED})
         
         # Increment NOMs for first solver
@@ -119,7 +119,7 @@ class GameController:
             return jsonify({'error': 'Game is not in progress'}), 400
         
         # Check if all pages have been solved
-        if game_state['current_page'] > 8:
+        if game_state['current_page'] > TOTAL_PAGES:
             return jsonify({'error': 'All pages have been solved'}), 400
         
         current_page = self.page_model.get_by_number(game_state['current_page'])

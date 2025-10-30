@@ -128,16 +128,14 @@ class Team(BaseModel):
 
         # Check team cap atomically
         from pymongo import ReturnDocument
-        # Use a counters collection for atomic team limit enforcement
         counters = self.db_manager.get_collection('counters')
         cap_doc = counters.find_one_and_update(
-            {'_id': 'team_count'},
+            {'_id': 'team_count', 'count': {'$lt': 20}},
             {'$inc': {'count': 1}},
             upsert=True,
             return_document=ReturnDocument.AFTER
         )
-        if cap_doc.get('count', 0) > 20:
-            counters.update_one({'_id': 'team_count'}, {'$inc': {'count': -1}})
+        if not cap_doc or cap_doc.get('count', 0) > 20:
             return False, None, {'error': 'Maximum number of teams (20) reached'}
 
         if self.get_by_name(name):
@@ -157,7 +155,6 @@ class Team(BaseModel):
             'NOMs': 0,
             'solved_pages': [],
             'letter_guesses': [],  # Track letters guessed by this team
-            'current_word_state': ['_' for _ in GameManager.WORD],
             'last_activity': datetime.utcnow()
         }
 

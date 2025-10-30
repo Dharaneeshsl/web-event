@@ -20,7 +20,10 @@ def register():
 def login():
     return auth_controller.login()
 
-## Profile route removed (JWT-dependent)
+@api_bp.route('/teams/profile', methods=['GET'])
+@jwt_required()
+def profile():
+    return auth_controller.profile()
 
 # Game routes (JWT protected)
 @api_bp.route('/game/status', methods=['GET'])

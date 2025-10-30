@@ -58,6 +58,7 @@ def register_socketio_handlers(socketio, db_manager):
             
             # Join the game room
             join_room('game')
+            join_room('updates')
             logger.info("Team joined game", team_id=team_id, team_code=team.get('code'))
             
             emit('joined_game', {
